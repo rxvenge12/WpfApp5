@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace WpfApp5
 {
     public partial class MainWindow : Window
     {
-        // Список вопросов
         private List<string> questions = new List<string>()
         {
             "Какой тип данных используется для хранения целых чисел?",
@@ -22,7 +22,6 @@ namespace WpfApp5
             "Какой тип данных используется для хранения одного из набора предопределенных значений?"
         };
 
-        // Список ответов для каждого вопроса
         private List<string[]> answers = new List<string[]>()
         {
             new string[] { "int", "float", "bool", "char" },
@@ -37,79 +36,109 @@ namespace WpfApp5
             new string[] { "enum", "int", "string", "float" }
         };
 
-        private int currentQuestionIndex = 0; // Индекс текущего вопроса
-        private int correctAnswers = 0; // Количество правильных ответов
-        private int totalQuestions; // Общее количество вопросов
-        private int timeLimitSeconds = 60; // Ограничение времени в секундах
+        private int currentQuestionIndex = 0;
+        private int correctAnswers = 0;
+        private int totalQuestions;
+        private int timeLimitSeconds = 60;
+        private bool isTestRunning = false;
+        private Task timerTask;
 
         public MainWindow()
         {
             InitializeComponent();
-            totalQuestions = questions.Count; // Получаем общее количество вопросов
-            PopulateQuestion(); // Заполняем первый вопрос
+            totalQuestions = questions.Count;
         }
 
-        // Заполнение текстовых блоков вопросами и вариантами ответов
-        private void PopulateQuestion()
+        private void StartTestButton_Click(object sender, RoutedEventArgs e)
         {
-            if (currentQuestionIndex < totalQuestions) // Проверяем, что текущий вопрос не превышает общее количество вопросов
+            if (!isTestRunning)
             {
-                questionTextBlock.Text = questions[currentQuestionIndex]; // Устанавливаем текст текущего вопроса
-                var options = answers[currentQuestionIndex]; // Получаем варианты ответов для текущего вопроса
-                option1RadioButton.Content = options[0]; // Устанавливаем текст для первой радиокнопки
-                option2RadioButton.Content = options[1]; // Устанавливаем текст для второй радиокнопки
-                option3RadioButton.Content = options[2]; // Устанавливаем текст для третьей радиокнопки
-                option4RadioButton.Content = options[3]; // Устанавливаем текст для четвертой радиокнопки
+                isTestRunning = true;
+                startTestButton.Visibility = Visibility.Collapsed; // Скрыть кнопку начала теста
+                timerTextBlock.Visibility = Visibility.Visible;
+                questionTextBlock.Visibility = Visibility.Visible;
+                option1RadioButton.Visibility = Visibility.Visible;
+                option2RadioButton.Visibility = Visibility.Visible;
+                option3RadioButton.Visibility = Visibility.Visible;
+                option4RadioButton.Visibility = Visibility.Visible;
+                nextButton.Visibility = Visibility.Visible;
+                StartTimer();
+                PopulateQuestion();
             }
         }
 
-        // Обработчик события выбора радиокнопки
-        private void OptionRadioButton_Checked(object sender, RoutedEventArgs e)
+        private async void StartTimer()
         {
-            EvaluateAnswer(); // Оцениваем ответ пользователя
-            currentQuestionIndex++; // Увеличиваем индекс текущего вопроса
-            if (currentQuestionIndex < totalQuestions) // Проверяем, что есть еще вопросы
+            int remainingSeconds = timeLimitSeconds;
+            while (remainingSeconds >= 0 && isTestRunning)
             {
-                PopulateQuestion(); // Заполняем следующий вопрос
+                timerTextBlock.Text = $"Оставшееся время: {remainingSeconds} секунд";
+                await Task.Delay(1000);
+                remainingSeconds--;
+            }
+            if (isTestRunning)
+            {
+                isTestRunning = false;
+                ShowTestResults();
+            }
+        }
+
+        private void PopulateQuestion()
+        {
+            if (currentQuestionIndex < totalQuestions)
+            {
+                questionTextBlock.Text = $"{currentQuestionIndex + 1}. {questions[currentQuestionIndex]}";
+                var options = answers[currentQuestionIndex];
+                option1RadioButton.Content = options[0];
+                option2RadioButton.Content = options[1];
+                option3RadioButton.Content = options[2];
+                option4RadioButton.Content = options[3];
+            }
+        }
+
+        private void NextButton_Click(object sender, RoutedEventArgs e)
+        {
+            EvaluateAnswer();
+            currentQuestionIndex++;
+            if (currentQuestionIndex < totalQuestions)
+            {
+                PopulateQuestion();
             }
             else
             {
-                ShowTestResults(); // Показываем результаты теста
+                ShowTestResults();
             }
         }
 
-        // Оценка ответа пользователя
         private void EvaluateAnswer()
         {
-            var selectedAnswer = GetSelectedAnswer(); // Получаем индекс выбранного ответа
-            var correctAnswerIndex = Array.IndexOf(answers[currentQuestionIndex], answers[currentQuestionIndex][0]); // Получаем индекс правильного ответа
-            if (selectedAnswer == correctAnswerIndex) // Проверяем, совпадает ли выбранный ответ с правильным
+            var selectedAnswer = GetSelectedAnswer();
+            var correctAnswerIndex = Array.IndexOf(answers[currentQuestionIndex], answers[currentQuestionIndex][0]);
+            if (selectedAnswer == correctAnswerIndex)
             {
-                correctAnswers++; // Увеличиваем счетчик правильных ответов
+                correctAnswers++;
             }
         }
 
-        // Получение индекса выбранного ответа
         private int GetSelectedAnswer()
         {
             if (option1RadioButton.IsChecked == true)
-                return 0; // Возвращаем индекс первого ответа
+                return 0;
             else if (option2RadioButton.IsChecked == true)
-                return 1; // Возвращаем индекс второго ответа
+                return 1;
             else if (option3RadioButton.IsChecked == true)
-                return 2; // Возвращаем индекс третьего ответа
+                return 2;
             else if (option4RadioButton.IsChecked == true)
-                return 3; // Возвращаем индекс четвертого ответа
+                return 3;
             else
-                return -1; // Никакой вариант не выбран
+                return -1;
         }
 
-        // Показ результатов теста
         private void ShowTestResults()
         {
             MessageBox.Show($"Тест завершен. Вы ответили правильно на {correctAnswers} из {totalQuestions} вопросов.",
                     "Результаты теста", MessageBoxButton.OK, MessageBoxImage.Information);
-            this.Close(); // Закрываем окно после завершения теста
+            this.Close();
         }
     }
 }
